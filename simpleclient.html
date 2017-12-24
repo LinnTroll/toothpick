@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Зубочистки</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.9/react.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.9/react-dom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-router/2.4.1/ReactRouter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.js"></script>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+        .navbar {
+            margin-top: 20px;
+        }
+    </style>
+
+    <script type="text/babel">
+        let BASE_API_URL = 'http://127.0.0.1:8000';
+        let OUTPUT_DATE_FORMAT = 'YYYY-MM-DD';
+        let Router = ReactRouter.Router;
+        let Route = ReactRouter.Route;
+        let IndexRoute = ReactRouter.IndexRoute;
+        let Link = ReactRouter.Link;
+        let hashHistory = ReactRouter.hashHistory;
+
+        let ToothpickItem = React.createClass({
+            render() {
+                return (
+                    <tr>
+                        <td>
+                            <Link to={'/toothpick/' + this.props.item.id + '/'}>
+                                {this.props.item.name}
+                            </Link>
+                        </td>
+                        <td>{this.props.item.serial_number}</td>
+                        <td>{this.props.item.owners.map(item => item.username).join(', ')}</td>
+                    </tr>
+                )
+            }
+        });
+
+        let ToothpickList = React.createClass({
+            getInitialState() {
+                return {
+                    items: []
+                };
+            },
+            componentDidMount() {
+                fetch(BASE_API_URL + '/api/v1/toothpick/').then(response => {
+                    return response.json();
+                }).then(json => {
+                    this.setState({
+                        items: json
+                    });
+                });
+            },
+            render() {
+                return (
+                    <div>
+                        <h3>Зубочистки</h3>
+                        <table className="table">
+                            <tbody>
+                            {this.state.items.map(item => (
+                                <ToothpickItem item={item}/>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            }
+        });
+
+        let ToothpickOwnHistoryItem = React.createClass({
+            render() {
+                let start_date = moment(this.props.item.own_start_at).format(OUTPUT_DATE_FORMAT);
+                let end_date = '...';
+                let user = this.props.item.user;
+                if (this.props.item.own_end_at) {
+                    end_date = moment(this.props.item.own_end_at).format(OUTPUT_DATE_FORMAT);
+                }
+                return (
+                    <div className="panel panel-default">
+                        <div className="panel-heading">
+                            <span className="glyphicon glyphicon-user"></span> <span></span>
+                            {user.username}
+                        </div>
+                        <div className="panel-body">
+                            <span className="glyphicon glyphicon-calendar"></span> <span></span>
+                            {start_date} - {end_date}
+                        </div>
+                    </div>
+                );
+            }
+        });
+
+        let ToothpickOwnerItem = React.createClass({
+            render() {
+                let owner = this.props.item;
+                return (
+                    <tr>
+                        <td>{owner.username}</td>
+                        <td>{owner.first_name} {owner.last_name}</td>
+                    </tr>
+                );
+            }
+        });
+
+        let ToothpickDetail = React.createClass({
+            getInitialState() {
+                return {
+                    item: null
+                };
+            },
+            componentDidMount() {
+                fetch(BASE_API_URL + '/api/v1/toothpick/' + this.props.params.id + '/').then(response => {
+                    return response.json();
+                }).then(json => {
+                    this.setState({
+                        item: json
+                    });
+                });
+            },
+            render() {
+                let render = <div></div>;
+                if (this.state.item) {
+                    render = (
+                        <div>
+                            <h3>{this.state.item.name}</h3>
+                            <div className="row">
+                                <div className="col-md-8">
+                                    <div className="row">
+                                        <div className="col-md-8">
+                                            <h4>Подробная информация:</h4>
+                                        </div>
+                                        <div className="col-md-4">
+                                            <Link className="btn btn-info btn-sm pull-right"
+                                                  to={'/toothpick/edit/' + this.state.item.id + '/'}>
+                                                <span className="glyphicon glyphicon-pencil"></span>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                    <table className="table">
+                                        <tbody>
+                                        <tr>
+                                            <th>Серийный номер</th>
+                                            <td>{this.state.item.serial_number}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Имя</th>
+                                            <td>{this.state.item.name}</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <h4>Текущие владельцы:</h4>
+                                    <table className="table">
+                                        <tbody>
+                                        {this.state.item.owners.reverse().map(item => (
+                                            <ToothpickOwnerItem item={item}/>
+                                        ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="col-md-4">
+                                    <h4>История владения:</h4>
+                                    {this.state.item.owners_history.reverse().map(item => (
+                                        <ToothpickOwnHistoryItem item={item}/>
+                                    ))}
+                                </div>
+                            </div>
+
+                        </div>
+                    );
+                }
+                return render;
+            }
+        });
+
+        let ToothpickForm = React.createClass({
+            getInitialState() {
+                return {
+                    all_owners: [],
+                    edit: false,
+                    serial_number: '',
+                    name: '',
+                    owners_ids: [null,],
+                    form_errors: {}
+                };
+            },
+            componentDidMount() {
+                if (this.props.params.id) {
+                    this.setState({
+                        edit: true
+                    });
+                }
+                fetch(BASE_API_URL + '/api/v1/owner/').then(response => {
+                    return response.json();
+                }).then(json => {
+                    this.setState({
+                        all_owners: json
+                    });
+                    if (this.props.params.id) {
+                        fetch(BASE_API_URL + '/api/v1/toothpick/' + this.props.params.id + '/').then(response => {
+                            return response.json();
+                        }).then(json => {
+                            this.setState({
+                                serial_number: json.serial_number,
+                                name: json.name,
+                                owners_ids: json.owners.map(item => item.id)
+                            });
+                        });
+                    }
+                });
+            },
+            handleSubmitProcessSuccess: function (data) {
+                this.props.history.push('/toothpick/' + data.id + '/');
+            },
+            handleSubmitProcessError(data) {
+                this.setState({
+                    form_errors: data
+                })
+            },
+            handleSubmit(event) {
+                event.preventDefault();
+                let method = 'POST';
+                let path = '/api/v1/toothpick/';
+                let data = {
+                    serial_number: this.state.serial_number,
+                    name: this.state.name,
+                    owners_ids: this.state.owners_ids
+                };
+                if (this.state.edit) {
+                    method = 'PUT';
+                    path = '/api/v1/toothpick/' + this.props.params.id + '/';
+                }
+                fetch(BASE_API_URL + path, {
+                    method: method,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                }).then(response => {
+                    return response.json().then(json => {
+                        if (response.ok) {
+                            this.handleSubmitProcessSuccess(json);
+                        } else {
+                            this.handleSubmitProcessError(json);
+                        }
+                    });
+                })
+            },
+            handleChangeSerialNumber(event) {
+                this.setState({serial_number: event.target.value});
+            },
+            handleChangeName(event) {
+                this.setState({name: event.target.value});
+            },
+            handleAddOwner(event) {
+                event.preventDefault();
+                let owners_ids = this.state.owners_ids;
+                owners_ids.push(null);
+                this.setState({
+                    owners_ids: owners_ids
+                });
+            },
+            handleDelOwner(index) {
+                return event => {
+                    event.preventDefault();
+                    let owners_ids = this.state.owners_ids;
+                    this.setState({
+                        owners_ids: owners_ids.slice(0, index).concat(owners_ids.slice(index + 1))
+                    });
+                };
+            },
+            handleChangeOwner(index) {
+                return event => {
+                    let owners_ids = this.state.owners_ids;
+                    owners_ids[index] = event.target.value;
+                    this.setState({
+                        owners_ids: owners_ids
+                    });
+                };
+            },
+            render() {
+                let getOwnerDeleteBtn = function (index) {
+                    let ownerDeleteBtn = <span></span>;
+                    if (this.state.owners_ids.length > 1) {
+                        ownerDeleteBtn = (
+                            <button className="btn btn-danger" onClick={this.handleDelOwner(index)}>
+                                <span className="glyphicon glyphicon-trash"></span>
+                            </button>
+                        );
+                    }
+                    return ownerDeleteBtn;
+                }.bind(this);
+
+                let getFieldErrorClass = function (src_cls, field) {
+                    let res_cls = src_cls;
+                    if (this.state.form_errors[field] !== undefined) {
+                        res_cls = src_cls + ' has-error';
+                    }
+                    return res_cls;
+                }.bind(this);
+
+                let getSubmitBtn = function () {
+                    let text = 'Создать';
+                    if (this.state.edit) {
+                        text = 'Сохранить';
+                    }
+                    return (
+                        <button type="submit" className="btn btn-primary">
+                            {text}
+                        </button>
+                    )
+                }.bind(this);
+
+                let render = (
+                    <form className="form-horizontal" onSubmit={this.handleSubmit}>
+                        <div className={getFieldErrorClass('form-group', 'serial_number')}>
+                            <label className="col-sm-2 control-label">Серийный номер</label>
+                            <div className="col-sm-5">
+                                <input className="form-control"
+                                       value={this.state.serial_number}
+                                       onChange={this.handleChangeSerialNumber}/>
+                            </div>
+                            <div className="col-sm-5">
+                                <small>
+                                    Укажите серийный номер зубочистки. Обычно он указан на обратной стороне.
+                                </small>
+                            </div>
+                        </div>
+                        <div className={getFieldErrorClass('form-group', 'name')}>
+                            <label className="col-sm-2 control-label">Имя</label>
+                            <div className="col-sm-5">
+                                <input className="form-control"
+                                       value={this.state.name}
+                                       onChange={this.handleChangeName}/>
+                            </div>
+                            <div className="col-sm-5">
+                                <small>
+                                    Обязательное поле.
+                                    У вашей зубочистки нет имени?
+                                    Вон с нашего сайта! Мы вас презираем.
+                                </small>
+                            </div>
+                        </div>
+                        {this.state.owners_ids.map((item, index) => (
+                            <div className={getFieldErrorClass('form-group', 'owners_ids')}>
+                                <label className="col-sm-2 control-label">Владелец {index + 1}</label>
+                                <div className="col-sm-5">
+                                    <select className="form-control"
+                                            value={this.state.owners_ids[index]}
+                                            onChange={this.handleChangeOwner(index)}>
+                                        <option></option>
+                                        {this.state.all_owners.map(item => (
+                                            <option value={item.id}>{item.username}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="col-sm-5">
+                                    {getOwnerDeleteBtn(index)}
+                                </div>
+                            </div>
+                        ))}
+                        <div className="form-group">
+                            <label className="col-sm-2 control-label">Добавить владельца</label>
+                            <div className="col-sm-5">
+                                <button className="btn btn-info" onClick={this.handleAddOwner}>
+                                    <span className="glyphicon glyphicon-plus"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <div className="col-sm-2"></div>
+                            <div className="col-sm-5">
+                                {getSubmitBtn()}
+                            </div>
+                        </div>
+                    </form>
+                );
+                return render;
+            }
+        });
+
+        let ToothpickFormCreate = React.createClass({
+            render() {
+                return <ToothpickForm params={this.props.params} history={this.props.history}/>
+            }
+        });
+
+        let ToothpickFormEdit = React.createClass({
+            render() {
+                return <ToothpickForm params={this.props.params} history={this.props.history}/>
+            }
+        });
+
+        let OwnerList = React.createClass({
+            getInitialState() {
+                return {
+                    items: []
+                };
+            },
+            componentDidMount() {
+                fetch(BASE_API_URL + '/api/v1/owner/').then(response => {
+                    return response.json();
+                }).then(json => {
+                    this.setState({
+                        items: json
+                    });
+                });
+            },
+            render() {
+                return (
+                    <div>
+                        <h3>Владельцы</h3>
+                        <table className="table">
+                            <tbody>
+                            {this.state.items.map(item => (
+                                <ToothpickOwnerItem item={item}/>
+                            ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )
+            }
+        });
+
+        let Index = React.createClass({
+            render: function () {
+                return (
+                    <div className="row">
+                        <div className="col-md-6">
+                            <ToothpickList/>
+                        </div>
+                        <div className="col-md-6">
+                            <OwnerList/>
+                        </div>
+                    </div>
+                )
+            }
+        });
+
+        let App = React.createClass({
+            render: function () {
+                return (
+                    <div>
+                        <nav className="navbar navbar-default">
+                            <Link className="navbar-brand" to={'/'}>
+                                <span className="glyphicon glyphicon-home"></span>
+                            </Link>
+                            <div className="collapse navbar-collapse">
+                                <ul className="nav navbar-nav">
+                                    <li>
+                                        <Link to={'/toothpick/create/'}>Добавить зубочистку</Link>
+                                    </li>
+                                </ul>
+                            </div>
+                        </nav>
+                        <div>
+                            {this.props.children}
+                        </div>
+                    </div>
+                )
+            }
+        });
+
+        ReactDOM.render(
+            <Router history={hashHistory}>
+                <Route path="/" component={App}>
+                    <IndexRoute component={Index}/>
+                    <Route path="/toothpick/create/" component={ToothpickFormCreate}/>
+                    <Route path="/toothpick/edit/:id/" component={ToothpickFormEdit}/>
+                    <Route path="/toothpick/:id/" component={ToothpickDetail}/>
+                </Route>
+            </Router>,
+            document.getElementById('app')
+        );
+    </script>
+</head>
+<body>
+<div class="container">
+    <div id="app"></div>
+</div>
+</body>
+</html>

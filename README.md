@@ -1,6 +1,6 @@
 ### Quick Start
 
-#### Simple run with docker-compose:
+#### Simple run with docker-compose
 
 * Clone repository
 * cd to project directory
@@ -9,6 +9,12 @@
 
 After this steps service will be up.
 Go to `http://127.0.0.1:8000/api/v1/` for check service is working.
+
+#### Use client
+
+Simple realisation of toothpick API client placed in file simpleclient.html.
+If you run API server on http://127.0.0.1:8000, you can open this file in browser and it will be work.
+If API server has another host, change BASE_API_URL option in simpleclient.html.
 
 ### REST API documentaton
 
