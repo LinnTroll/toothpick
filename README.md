@@ -2,7 +2,7 @@
 
 #### Live example
 
-* [API serer](https://toothpickshare-api.herokuapp.com/api/v1/)
+* [API server](https://toothpickshare-api.herokuapp.com/api/v1/)
 * [Client](https://toothpickshare-client.herokuapp.com/)
 
 #### Simple run with docker-compose
