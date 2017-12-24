@@ -7,7 +7,7 @@
 * Run `docker-compose run web python manage.py migrate` for initialize database
 * Run `docker-compose up`
 
-After this steps service will be up on `http://127.0.0.1:8000/`.
+After this steps service will be up.
 Go to `http://127.0.0.1:8000/api/v1/` for check service is working.
 
 ### REST API documentaton
