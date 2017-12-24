@@ -2,7 +2,7 @@
 
 #### Live example
 
-* [API serer](https://toothpickshare-api.herokuapp.com/)
+* [API serer](https://toothpickshare-api.herokuapp.com/api/v1/)
 * [Client](https://toothpickshare-client.herokuapp.com/)
 
 #### Simple run with docker-compose
@@ -14,6 +14,11 @@
 
 After this steps service will be up.
 Go to `http://127.0.0.1:8000/api/v1/` for check service is working.
+
+For login to admin interface use:
+
+* login: `admin`
+* password: `password`
 
 #### Use client
 
