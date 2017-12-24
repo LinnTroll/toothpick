@@ -16,7 +16,7 @@ class ToothpickAdmin(admin.ModelAdmin):
         return [u.username for u in item.actual_owners()]
 
     get_owners.short_description = 'owners'
-    list_display = ('name', 'get_owners')
+    list_display = ('name', 'get_owners', 'created_at')
     inlines = (ToothpickOwnershipInline,)
 
 
